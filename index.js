@@ -23,7 +23,8 @@ function treatFiles({ files, keepHowMany, executeDelete, except }) {
     // executeDelete: executa a exclusão dos dados
     // retorno da função: Todos arquivos encontrados na busca.
 
-    const [dateComplete, salveThis, result] = [[], [], []]
+    const [salveThis, result] = [[], []]
+    let dateComplete = []
 
     files.forEach(file => {
         const date = new Date(fs.statSync(file).birthtimeMs)
@@ -31,11 +32,21 @@ function treatFiles({ files, keepHowMany, executeDelete, except }) {
         result.push({ file, date })
     })
 
-    dateComplete.sort()
+    result.forEach((e, i) => { 
+        if (except.includes(e.file)) {
+            console.log("This file is except and d'not exclued: ", e.file)
+            result.splice(i, 1) 
+            dateComplete.splice(i, 1)
+        }
+    })
+
+    dateComplete = dateComplete.reverse()
     if (keepHowMany > 0) { let i = 0; while (i < keepHowMany) salveThis.push(dateComplete[i]) && i++ }
 
     result.forEach(result => {
-        const keep = salveThis.find(date => result.date === date) || except.find(exception => result.file === exception)
+        const keep = salveThis.includes(result.date)
+        if (keep) console.log("is keep this: ", result.file)
+
         if (!keep && executeDelete) fs.rmSync(result.file)
         else if (!keep) console.log('This file will be deleted: ', result.file)
     })
@@ -43,9 +54,9 @@ function treatFiles({ files, keepHowMany, executeDelete, except }) {
     return result // do mais atual ao mais antigo
 }
 
-console.log(treatFiles({
+treatFiles({
     files: getAllFilesOfAllDir(__dirname),
-    keepHowMany: 1,
     executeDelete: true,
-    except: [__dirname + '/index.js']
-}))
+    keepHowMany: 1,
+    except: [__dirname+'/index.js']
+})
