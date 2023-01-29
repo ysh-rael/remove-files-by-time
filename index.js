@@ -23,40 +23,45 @@ function treatFiles({ files, keepHowMany, executeDelete, except }) {
     // executeDelete: executa a exclusão dos dados
     // retorno da função: Todos arquivos encontrados na busca.
 
-    const [salveThis, result] = [[], []]
+    if (typeof except != 'object') except = [except]
+
+    const [salveThis, removeTheseIndex, result] = [[], [], []]
     let dateComplete = []
 
-    files.forEach(file => {
-        const date = new Date(fs.statSync(file).birthtimeMs)
-        dateComplete.push(date)
-        result.push({ file, date })
-    })
+    { // alimenta as variáveis
+        files.forEach(file => {
+            const date = new Date(fs.statSync(file).birthtimeMs)
+            dateComplete.push(date) // alimenta array com datas usadas para controlar o 'keepHowMany' 
+            result.push({ file, date }) // criar array com objeto final com arquivo e data.
+        })
+    }
 
-    result.forEach((e, i) => { 
-        if (except.includes(e.file)) {
-            console.log("This file is except and d'not exclued: ", e.file)
-            result.splice(i, 1) 
-            dateComplete.splice(i, 1)
-        }
-    })
+    {   // "remove as excessões da contagem"
+        result.forEach((e, i) => except.forEach(_except => { if (_except == e.file) removeTheseIndex.push(i) && console.log("This file is except and d'not exclued: ", e.file) }))
+        removeTheseIndex.forEach(e => result.splice(e, 1) && dateComplete.splice(e, 1))
+    }
 
-    dateComplete = dateComplete.reverse()
-    if (keepHowMany > 0) { let i = 0; while (i < keepHowMany) salveThis.push(dateComplete[i]) && i++ }
+    {
+        dateComplete = dateComplete.reverse() //Ordena do mais atual ao mais antigo
+        if (keepHowMany > 0) { let i = 0; while (i < keepHowMany) salveThis.push(dateComplete[i]) && i++ } // keepHowMany
+    }
 
-    result.forEach(result => {
-        const keep = salveThis.includes(result.date)
-        if (keep) console.log("is keep this: ", result.file)
+    {
+        result.forEach(result => { // executa a exclusão dos arquivos
+            const keep = salveThis.includes(result.date)
+            if (keep) console.log("is keep this: ", result.file)
 
-        if (!keep && executeDelete) fs.rmSync(result.file)
-        else if (!keep) console.log('This file will be deleted: ', result.file)
-    })
+            if (!keep && executeDelete) fs.rmSync(result.file)
+            else if (!keep) console.log('This file will be deleted: ', result.file)
+        })
+    }
 
-    return result // do mais atual ao mais antigo
+    return result
 }
 
 treatFiles({
     files: getAllFilesOfAllDir(__dirname),
     executeDelete: true,
     keepHowMany: 1,
-    except: [__dirname+'/index.js']
+    except: [__dirname + '/index.js']
 })
